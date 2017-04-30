@@ -1,0 +1,14 @@
+{
+  "name": "euronext-scraper",
+  "version": "0.0.1",
+  "description": "Scrape le cours des actions sur euronext.",
+  "main": "scraper-euronext.js",
+  "author": "Nicolas Urgin",
+  "dependencies": {
+    "async": "^2.4.0",
+    "cheerio": "^0.22.0",
+    "mkdirp": "^0.5.1",
+    "moment": "^2.18.1",
+    "superagent": "^3.5.2"
+  }
+}
