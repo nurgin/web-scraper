@@ -1,0 +1,14 @@
+{
+  "name": "parionssport-pronosoft-scrape",
+  "version": "0.0.1",
+  "description": "Scrape les grilles parions sport sur pronosoft.",
+  "main": "scraper-pronosoft.js",
+  "author": "Nicolas Urgin",
+  "dependencies": {
+    "async": "^0.9.0",
+    "cheerio": "latest",
+    "moment": "latest",
+    "superagent": "^0.21.0",
+    "superagent-charset": "0.0.1"
+  }
+}
