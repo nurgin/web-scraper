@@ -3,7 +3,7 @@
  */
 
 var fs = require('fs');
-var superagent = require('superagent-charset');
+var superagent = require('superagent');
 var cheerio = require('cheerio');
 var async = require('async');
 var moment = require('moment');
@@ -51,7 +51,6 @@ function getCompositionList(url, data, callback) {
 
     superagent
         .get(url)
-        .charset('iso-8859-15')
         .end(function (error, response) {
             if (error) {
                 callback(error);
@@ -128,7 +127,6 @@ function getIntradayData(compositionData, callback) {
                 dateFormat: 'd/m/Y',
                 locale: 'null'
             })
-            .charset('iso-8859-15')
             .end(function (error, response) {
                 if (error) {
                     console.log('error');
@@ -149,7 +147,7 @@ function saveIntradayData(composant, intradayData, callback) {
     var saveDirectory = DATA_DIRECTORY + '/' + moment().format('YYYY-MM-DD');
     var filepath = saveDirectory + '/' + composant.isin + '.json';
 
-    var writeFile = function (/*filepath, intradayData*/) {
+    var writeFile = function () {
         fs.writeFile(filepath, JSON.stringify(intradayData, null, 2), function (error) {
             callback(error);
         });
