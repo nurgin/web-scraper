@@ -22,26 +22,79 @@ var PATH_INTRADAY = '/sites/www.euronext.com/modules/common/common_listings/cust
 
 var DATA_DIRECTORY = "./data";
 
+var recovery = {composants: []};
+var recovering = false;
+
 // lancer le traitement
 async.waterfall([
-    // récupérer la liste de composants de l'indice dont l'url est fournie en paramètre
+    // reprise sur panne : récupérer la liste des composants non traités lors de la précendente exécution
     function (callback) {
         console.log('= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =');
-        getCompositionList(BASE_URL + PATH_COMPOSANT_CAC_ALL_TRADABLE, null, callback);
+        getRecoveryData(callback);
+    },
+    // récupérer la liste de composants de l'indice dont l'url est fournie en paramètre
+    function (data, callback) {
+        // s'il y a des données de reprise sur panne
+        if (data) {
+            // alors on récupère les données de recovery et on passe à l'étape suivante
+            recovering = true;
+            recovery = JSON.parse(JSON.stringify(data));
+            callback(null, data);
+        } else {
+            // sinon on récupère les composants
+            console.log('= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =');
+            getCompositionList(BASE_URL + PATH_COMPOSANT_CAC_ALL_TRADABLE, data, callback);
+        }
     },
     // récupérer les données intraday des composants
     function (data, callback) {
         console.log('= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =');
         getIntradayData(data, callback);
     }
-], function (err, result) {
-    // result now equals 'done'
+], function (err) {
+    var recoveryFilePath = DATA_DIRECTORY + '/' + moment().format('YYYY-MM-DD') + '/recovery.json';
+
     if (err) {
         console.error('= = = = = = ERROR = = = = = = ERROR = = = = = = ERROR = = = = = =');
-        throw err;
+        console.log('Sauvegarde du fichier de reprise sur panne...');
+        saveFile(recoveryFilePath, JSON.stringify(recovery, null, 2), function(error) {
+            if (error)
+                console.log('Erreur à la sauvegarde du fichier de reprise : ' + error);
+            throw err;
+        });
+
+    } else if (recovering) {
+        console.log('= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =');
+        console.log('Suppression du fichier de reprise sur panne...');
+        removeFile(recoveryFilePath, function (error) {
+            if (error)
+                console.log('Erreur à la suppression du fichier de reprise : ' + error);
+        });
     }
     console.log('= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =');
 });
+
+function getRecoveryData(callback) {
+    var recoveryFilePath = DATA_DIRECTORY + '/' + moment().format('YYYY-MM-DD') + '/recovery.json';
+
+    // récupérer le fichier de recovery s'il existe
+    fs.readFile(recoveryFilePath, function (err, data) {
+        if(err) {
+            // si le fichier n'existe pas
+            if(err.errno == -2 && err.code === 'ENOENT') {
+                // alors appel callback vide
+                console.log('No recovering data');
+                return callback(null, null);
+            } else {
+                // sinon appel callback avec l'erreur
+                return callback(err, null);
+            }
+        }
+        // retourner les données quand il n'y a pas d'erreur
+        console.log('Recovering data');
+        callback(null, JSON.parse(data));
+    });
+}
 
 /**
  * Récupérer les composants de l'url en paramètre.
@@ -62,13 +115,15 @@ function getCompositionList(url, data, callback) {
             if (data.nextPagePath) {
                 getCompositionList(BASE_URL + data.nextPagePath, data, callback);
             } else {
+                 // sauvegarder la liste pour la reprise sur panne
+                recovery = JSON.parse(JSON.stringify(data));
                 callback(error, data);
             }
         });
 }
 
 /**
- * Récupérer les données des grilles lotofoot à partir du contenu html.
+ * Récupérer les données des composants à partir du code html.
  */
 function getCompositionData(div, data) {
     // charger le html
@@ -149,6 +204,8 @@ function saveIntradayData(composant, intradayData, callback) {
 
     var writeFile = function () {
         fs.writeFile(filepath, JSON.stringify(intradayData, null, 2), function (error) {
+            if(!error)
+                recovery.composants.shift();
             callback(error);
         });
     };
@@ -165,5 +222,23 @@ function saveIntradayData(composant, intradayData, callback) {
         } else {
             writeFile();
         }
+    });
+}
+
+function readFile(filepath, callback) {
+    fs.readFile(filepath, function (error, data) {
+        callback(error, data);
+    });
+}
+
+function saveFile(filepath, content, callback) {
+    fs.writeFile(filepath, content, function (error) {
+        callback(error);
+    });
+}
+
+function removeFile(filepath, callback) {
+    fs.unlink(filepath, function (error) {
+        callback(error);
     });
 }
