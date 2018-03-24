@@ -169,27 +169,38 @@ function getIntradayData(compositionData, callback) {
     console.log('Récupération des données intraday du ' + moment().format('LL') + ' :');
 
     var timestamp = moment().startOf('day').format('x');
+    let retryOptions = {
+        times: 5,
+        interval: 10000
+    };
+
+    let nbEssai;
 
     async.eachSeries(compositionData.composants, function (composant, eachSeriesCallback) {
-        console.log(composant.titre);
-        superagent
+      nbEssai = 0;
+        async.retry(retryOptions, function (retryCallback) {
+          console.log(composant.titre, nbEssai++ > 0 ? `(essai ${nbEssai})` : '');
+          superagent
             .get(BASE_URL + PATH_INTRADAY)
             .query({
-                q: 'intraday_data',
-                from: timestamp,
-                isin: composant.isin,
-                mic: 'XPAR',
-                dateFormat: 'd/m/Y',
-                locale: 'null'
+              q: 'intraday_data',
+              from: timestamp,
+              isin: composant.isin,
+              mic: 'XPAR',
+              dateFormat: 'd/m/Y',
+              locale: 'null'
             })
             .end(function (error, response) {
-                if (error) {
-                    console.log('error');
-                    callback(error);
-                } else {
-                    saveIntradayData(composant, JSON.parse(response.text), eachSeriesCallback);
-                }
+              if (error) {
+                console.log('error');
+                retryCallback(error);
+              } else {
+                saveIntradayData(composant, JSON.parse(response.text), retryCallback);
+              }
             });
+        }, function (error) {
+            eachSeriesCallback(error);
+        });
     }, function (error) {
         callback(error);
     });
