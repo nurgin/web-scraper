@@ -96,6 +96,7 @@ function processFiles(files, directory, callback) {
     
     var indexOfRecovery = files.indexOf('recovery.json');
     if(indexOfRecovery != -1) {
+        removeFile(DATA_DIRECTORY + '/' + directory + '/' + file);
         files.splice(indexOfRecovery, 1);
     }
 
