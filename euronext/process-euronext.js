@@ -93,6 +93,11 @@ function processDirectories(directories, callback) {
  * @return {void}
  */
 function processFiles(files, directory, callback) {
+    
+    var indexOfRecovery = files.indexOf('recovery.json');
+    if(indexOfRecovery != -1) {
+        files.splice(indexOfRecovery, 1);
+    }
 
     async.eachSeries(files, function (file, eachSeriesCallback) {
         process.stdout.write(file + '\r');
