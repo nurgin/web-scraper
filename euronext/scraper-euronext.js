@@ -93,6 +93,14 @@ function getRecoveryData(callback) {
         // retourner les données quand il n'y a pas d'erreur
         console.log('Recovering data');
         callback(null, JSON.parse(data));
+        // vérifier la taille des données
+        if(data.length < 2) {
+           console.log('Empty data :', data);
+           callback(null, null);
+        } else {
+          console.log('Recovering data :', data);
+          callback(null, JSON.parse(data));
+        }
     });
 }
 
